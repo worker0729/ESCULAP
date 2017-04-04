@@ -1,0 +1,53 @@
+$ParNumeric
+EpsCFL = 0.1d0	!< used to calculate the value of DeltaT from Courant Friedrichs Lewy Condition 
+EpsRK = 0.01d0	!< used to calculate the time step of a Runge-Kutta integration
+IDIMR = 600		!< number of numerical cells in  the transverse grid
+IDIMZ = 1000	!< number of numerical cells in  the longitudinal grid
+ProjOrderR = 2	!< type of projector grid-particle, in the radial dimension allowed values are 1 or 2
+ProjOrderZ = 2	!< type of projector grid-particle, in the longitudinal dimension, allowed values are 1 or 2
+RadiusGridCoef = 15.d0	!< coefficient to determine the radius of the grid
+TimeOn_cm = -4.d0	!< position in z at starting (z = 0 is the laser focal plane)
+TimeEnd_cm = 5.09d0	!< position in z at the end of calculation
+withLaser = .True.	!< determine whereas there is (true) or not (false) a laser beam
+withBeamParticle = .True.	!< determine whereas there is (true) or not (false) an injected electron beam
+withPlasma = .True.	!< determine whereas there is (true) or not (false) a plasma
+withTestParticle = .False. !< determine whereas there is (true) or not (false) test particles
+ZLengthGrid = 23.964254d0	!< total length of the numerical grid, in reduced units
+$END
+$Parlaser
+LaserDuration_fs = 38.2195d0	!< duration (1/e^2) of the laser pulse
+LaserEnergy_J = 2.d0	!< Energy in joule of the laser pulse
+LaserGridPosition_Duration = 3.65d0	!< Position of the maximum of the laser pulse in the numerical grid in units of its duration
+LaserWaist0_cm = 50.46266472d-4	!< waist of the laser pulse in cm
+SpaceGaussianLaser = .True.	!< determine whereas the laser pulse has a transverse Gaussian form (true) or not (False)
+TimeGaussianLaser = .True.	!< determine wheras the laser pulse has a longitudinal Gaussian form (true) or not (False)
+$END
+$ParPlasma
+Dens0Plasma_cm3 = 2.d17	!< reference density of the plasma target in cm^-3
+$END
+$ParExternalBeam
+BeamPosition = 9.d0 !< yield the reference position in reduced units of the injected beam
+NcaseBeamInjection = 0 !<used for injected beam in the subroutine BeamInjection, = 0:gaussian distribution; =1 read External_BeamPart.dat (ASTRA format)
+NtBeamPartRead = 100000 !< number of read particle, for NcaseBeamInjection = 0, it is also the total of calulated particles
+NumBeam = 1	!< number of beams (presently only one is possible)
+BeamDeltaX_cm = 0.d0 !< misalignment in X of the beam particle compared with the laser axis
+BeamDeltaY_cm = 0.d0 !< misalignment in Y of the beam particle compared with the laser axis
+BeamDuration_fs = 100.d0 !< duration in 
+BeamGamMoy = 19.d0	!< average value of the Lorentz factor
+BeamGamWidth = 1.d-2 !< rms width of the energy distribution
+BeamPhi_mrad = 0.d0	!< angle in mrad between the transverse projection of the direction of the beam and the x axis
+BeamTeta_mrad = 0.d0	!< angle in mrad between the direction of the beam and the z axis
+BeamWidthX_cm = 5.d-3	!< width in cm of the particle distribution in x
+BeamWidthY_cm = 5.d-3	!< width in cm of the particle distribution in y
+BeamWidthTetaX_mrad = 10.d0	!< width in mrad of the angle px/pz distribution
+BeamWidthTetaY_mrad = 10.d0 !< width in mrad of the angle py/pz distribution
+$END
+$ParOutPut
+BeamNumPrint = 20000	!< number of printed particles, used if LPrintBeamPartT2u = .True.
+DeltatSort_cm = 0.1d0	!< length between two output
+LPrintPlasmaField = .true.	!< determine whereas to print (true) or not (false) the plasma wave fields
+LPrintBeamPartT2u = .True.	!< determine whereas to print (true) or not (false) the particles properties
+$END
+
+
+

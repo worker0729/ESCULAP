@@ -1,0 +1,2 @@
+WakeTraj90.exe : windows 64 bits
+WakeTraj90.f90 : contains all the programs, can be directly compiled (ifort or gfortran)
