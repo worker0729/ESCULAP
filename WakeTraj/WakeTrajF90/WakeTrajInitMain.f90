@@ -78,8 +78,8 @@ subroutine InitMain()
     write(*,*) ' error in Trmax input values; one of the TimeEnd_Rayleigh, TimeEnd_cm values should be specified'
     stop
   endif
-  if (TypeOfCalculation /= 1) then
-    write(*,*) 'Presently only the value TypeCalculation = 1 is allowed '
+  if ((TypeOfCalculation > 2).or.(TypeOfCalculation < 1)) then
+    write(*,*) 'Presently only the values TypeCalculation = 1,2 are allowed '
     stop
   endif
   if (RadiusGridCoef < 1.d-10) then
@@ -170,7 +170,7 @@ subroutine InitMain()
   else
     LaserWaist0_cm = LaserWaist0 / PlasmaWNum_cm1
   endif
-  if(TypeOfCalculation == 1) then !< determination of LaserAmax  
+  if(TypeOfCalculation <= 3) then !< determination of LaserAmax  
     if((LaserAmax < 1.d-10).and.(LaserMaxIntensity_Wcm2 < 1.d-10)) then !< LaserAmax and Int Max are determined by the energy
       LaserMaxIntensity_Wcm2 = 1.d15 * LaserEnergy_J / ((0.5*Pi)**1.5 * LaserWaist0_cm**2 * LaserDuration_fs)
       LaserAmax = 0.855d-5 * LaserWLength_cm * sqrt(LaserMaxIntensity_Wcm2)

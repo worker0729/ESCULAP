@@ -13,14 +13,13 @@ subroutine InitLaser()
   use MdNumeric
   implicit none
 !  
-  namelist/ParLaser/ LaserAmax, EpsLaserDiffrac, EpsRayleigh, LaserEnergy_J, LaserMaxIntensity_Wcm2,  LaserDuration, &
+  namelist/ParLaser/ LaserAmax, EpsLaserDiffrac, LaserEnergy_J, LaserMaxIntensity_Wcm2,  LaserDuration, &
                       & LaserDuration_fs, LaserGridPositionInit, LaserGridPosition_duration, TimeGaussianLaser, &
                       &  SpaceGaussianLaser, LaserWaist0, LaserWaist0_cm
 !
 ! default values
   LaserAmax = 0.d0
   EpsLaserDiffrac = 0.5d0
-  EpsRayleigh = 1.d-2
   LaserDuration = 0.d0
   LaserDuration_fs = 0.d0
   LaserWLength_cm = 0.8d-4

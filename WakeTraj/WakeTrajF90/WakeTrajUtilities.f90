@@ -59,6 +59,16 @@ subroutine  PrintPlasmaField()
     write(111,'(5000e16.8)') (T2PlasmaElecRad3(iz,ir),iz=0,IDIMZ)
   enddo
   close (111)
+!* if TypeOfCalculation = 2, print of the potential
+  if(TypeOfCalculation == 2) then
+    write(LocNameFich,'(''PlPoten'',I4.4,''.out'')') NumPrint
+    open(111,file=LocNameFich)
+    do ir = 0,IDIMR
+      write(111,'(5000e16.8)') (T2PlasmaPot3(iz,ir),iz=0,IDIMZ)
+    enddo
+    close (111)
+  endif
+  
 !
 end subroutine PrintPlasmaField
 !

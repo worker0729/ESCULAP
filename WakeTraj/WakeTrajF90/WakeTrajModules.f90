@@ -75,7 +75,6 @@ module MdLaser
   real*8 :: AmpLaser  !< value of the normalized vector potential at a given time
   real*8 :: CriticalDensity_cm3 !< critical density in cm^-3
   real*8 :: EpsLaserDiffrac !< input, used to calculate DeltaT from laser diffraction
-  real*8 :: EpsRayleigh !< input, used to calculate DeltaT from the Rayleigh length
   real*8 :: LaserDuration !< input, 1/e^2 duration of the laser intensity in reduced units
   real*8 :: LaserDuration_fs !< input, 1/e^2 duration of the laser intensity in fs
   real*8 :: LaserEnergy_J !< input, laser energy in Joule, is zero on input, calculated
@@ -221,6 +220,7 @@ end module MdBeamParticle
 !> Parameter of the plasma
 module MdPlasma
   integer :: FormeDensityProfile !< input in WakeTrajDensProfile.dat, determine the type of density profile
+  integer :: MaxNumTimestepWakeAC !< input, maximum number of timestep in WakeAC values
   real*8 :: DensPlasma !< relative plasma density
   real*8 :: Dens0Plasma_cm3  !< input, reference density of the plasma electrons in cm3, density on a specific point = Dens0Plasma_cm3 * DensPlasma
   real*8 :: EpsPlasmaLaser !< ratio of OmegaP / OmegaL
@@ -232,6 +232,8 @@ module MdPlasma
   real*8, allocatable, dimension(:,:) :: T2PlasmaElecrad3 !< (-1:IZMX,-1:IRMX) radial electric field at time 3
   real*8, allocatable, dimension(:,:) :: T2PlasmaElecZ1   !< (-1:IZMX,-1:IRMX) longitudinal electric field at time 1
   real*8, allocatable, dimension(:,:) :: T2PlasmaElecZ3   !< (-1:IZMX,-1:IRMX) longitudinal electric field at time 3
+  real*8, allocatable, dimension(:,:) :: T2PlasmaPot3      !< (-1:IZMX,-1:IRMX) Potential at time 3
+  real*8, allocatable, dimension(:,:) :: T2PsiAC      !< (-1:idimR+5, -2:idimz+5) Psi potential as calculated by WakeAC
 end module MdPlasma
 
 !

@@ -4,7 +4,8 @@
 ! see documentaion in WakeTrajDoc
 ! description of main variables is given in WakeTrajModule.90
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 16/03/2017
+! version 13/04/2017
+!** 13/04/2017  : case TypeOfCalculation = 2 is added
 !> subroutine that determine the initial step of the calculation
 subroutine InitialStep()
   use MdConstant
@@ -37,8 +38,12 @@ subroutine InitialStep()
       AmpLaser = LaserAmax * LaserWaist0 / LaserWaist
       Call LinearGaussianField()  !<determination of the field at the given time
       if(withBeamParticle) call BeamInjection !< injection of the beam particles
-! determination of DeltaT;  here only from the Rayleigh length
-      DeltaT = EpsRayleigh * Rayleigh_cm * PlasmaWNum_cm1 
+    
+    case(2) !< field is calculated from WakeAC
+      iTimeStep = -1 !< initial time should be the same than in the WakeAC calculation
+      Call FieldFromWakeAC()  !< determination of the field at the given time
+      if(withBeamParticle) call BeamInjection !< injection of the beam particles
+      
     case default
       write(*,*) ' error, presently only TypeOfCalculation=1 is allowed '
       write(*,*) ' however, input value of TypeOfCalculation = ',TypeOfCalculation

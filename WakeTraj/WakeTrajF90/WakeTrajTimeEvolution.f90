@@ -4,7 +4,8 @@
 ! see documentaion in WakeTrajDoc
 ! description of main variables is given in WakeTrajModule.90
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 20/03/2017
+! version 13/04/2017
+!* 13/04/2017 : implementation of typeofcalculation=2  
 !> subroutine calculating the evolution of fields and particles during the propagation
 subroutine TimeEvolution()
   use MdConstant
@@ -36,8 +37,12 @@ subroutine TimeEvolution()
       LaserWaist = LaserWaist0 * sqrt(1.d0 + (time_cm/Rayleigh_cm)**2)
       AmpLaser = LaserAmax * LaserWaist0 / LaserWaist
       Call LinearGaussianField()  !<determination of the field at the given time
+
+    case (2)  !< electric field calculated from WakeAC values of Psi potential
+      Call FieldFromWakeAC()
+      
     case default
-      write(*,*) ' error, presently only TypeOfCalculation=1 is allowed '
+      write(*,*) ' error, presently only TypeOfCalculation=1, 2 are allowed '
       stop
   end select
 

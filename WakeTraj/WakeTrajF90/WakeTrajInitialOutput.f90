@@ -62,7 +62,6 @@ subroutine InitOutput()
     write(10,'(''    LaserAmax             '',e12.4)') LaserAmax
     write(10,'('' CriticalDensity_cm3 '',e12.4)') CriticalDensity_cm3
     write(10,'('' EpsLaserDiffrac    '',e12.4)') EpsLaserDiffrac
-    write(10,'('' EpsRayleigh        '',e12.4)') EpsRayleigh
     write(10,'('' LaserDuration      '',e12.4)') LaserDuration
     write(10,'('' LaserDUration_fs   '',e12.4)') LaserDuration_fs
     write(10,'('' LaserEnergy_J      '',e12.4)') LaserEnergy_J

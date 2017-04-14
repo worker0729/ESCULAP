@@ -75,7 +75,6 @@ module MdLaser
   real*8 :: AmpLaser  !< value of the normalized vector potential at a given time
   real*8 :: CriticalDensity_cm3 !< critical density in cm^-3
   real*8 :: EpsLaserDiffrac !< input, used to calculate DeltaT from laser diffraction
-  real*8 :: EpsRayleigh !< input, used to calculate DeltaT from the Rayleigh length
   real*8 :: LaserDuration !< input, 1/e^2 duration of the laser intensity in reduced units
   real*8 :: LaserDuration_fs !< input, 1/e^2 duration of the laser intensity in fs
   real*8 :: LaserEnergy_J !< input, laser energy in Joule, is zero on input, calculated
@@ -221,6 +220,7 @@ end module MdBeamParticle
 !> Parameter of the plasma
 module MdPlasma
   integer :: FormeDensityProfile !< input in WakeTrajDensProfile.dat, determine the type of density profile
+  integer :: MaxNumTimestepWakeAC !< input, maximum number of timestep in WakeAC values
   real*8 :: DensPlasma !< relative plasma density
   real*8 :: Dens0Plasma_cm3  !< input, reference density of the plasma electrons in cm3, density on a specific point = Dens0Plasma_cm3 * DensPlasma
   real*8 :: EpsPlasmaLaser !< ratio of OmegaP / OmegaL
@@ -232,6 +232,8 @@ module MdPlasma
   real*8, allocatable, dimension(:,:) :: T2PlasmaElecrad3 !< (-1:IZMX,-1:IRMX) radial electric field at time 3
   real*8, allocatable, dimension(:,:) :: T2PlasmaElecZ1   !< (-1:IZMX,-1:IRMX) longitudinal electric field at time 1
   real*8, allocatable, dimension(:,:) :: T2PlasmaElecZ3   !< (-1:IZMX,-1:IRMX) longitudinal electric field at time 3
+  real*8, allocatable, dimension(:,:) :: T2PlasmaPot3      !< (-1:IZMX,-1:IRMX) Potential at time 3
+  real*8, allocatable, dimension(:,:) :: T2PsiAC      !< (-1:idimR+5, -2:idimz+5) Psi potential as calculated by WakeAC
 end module MdPlasma
 
 !
@@ -283,7 +285,8 @@ end module MdRungeKutta
 ! description of main variables is given in WakeTrajModule.90
 ! note that time is often written as a length in cm, the related time is in fact the one needed to travel one cm with the speed of light, which is the speed of the moving window  
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 08/03/2017
+! version 13/04/2017
+! ** 13/04/2017: implementation of TypeOfCalculation=2 for which the field is calculated from T2Psi values of a WakeAC calculation
 !> main program
 program WakeTrajMain
   use MdNumeric
@@ -343,7 +346,7 @@ subroutine Analyze()
 
 ! 2 Look whether we have to do some output
   if(TimeSort < 0.5*DeltaT) then
-    TimeSort = DeltaTSort + 0.5*deltaT
+    TimeSort = DeltaTSort + 0.499d0*deltaT
     NumPrint = NumPrint+1
     write(*,*) ' Time_cm',time_cm, ' NumPrint ',Numprint
     if(withBeamParticle) write(*,*) ' Number of beam particles ',locNBeamPart
@@ -882,7 +885,58 @@ subroutine DensityProfile()
           stop
       end select
 end subroutine DensityProfile  
-  ! file WakeTrajFinalAnalysis.f90
+  ! file WakeTrajFieldFromWakeAC.f90
+! Calculate  the plasma_wave field from the potential filed as calculated by WakeAC
+! called by InitialStep, TimeEvolution  
+! see documentaion in WakeTrajDoc
+! description of main variables is given in WakeTrajModule.90
+! author Gilles Maynard CNRS/LPGP/ITFIP
+! version 13/04/2017
+!> subroutine calculation of the plasma field  at time 3 as 
+subroutine FieldFromWakeAC()
+  use MdNumeric
+  use MdPlasma
+  implicit none
+!
+  character*21 :: locNameFich
+  integer :: ir, iz
+  if(iTimeStep < MaxNumTimestepWakeAC) then
+! reading T2Psi tables
+    write(locNameFich,'(''.\WakeAC\PsiPo'',i3.3,''.bin'')') iTimeStep +1
+    write(*,*) ' T2PsiFich ', locNameFich
+    open(111,file=locNameFich,form='unformatted')
+    read(111) T2PsiAC
+    do ir = -1, IRMX
+      do iz = -1, IZMX
+        T2PlasmaPot3(iz,ir) = T2PsiAC(ir,iz)
+      enddo
+    enddo
+    T2PlasmaPot3(IDIMZ+1,:) = 2.d0*T2PlasmaPot3(IDIMZ,:) - T2PlasmaPot3(IDIMZ-1,:)
+    T2PlasmaPot3(:,IDIMR+1) = 2.d0*T2PlasmaPot3(:,IDIMR) - T2PlasmaPot3(:,IDIMR-1)
+! longitudinal field is on the radial grid but halfway axial
+    do ir = 0 , IDIMR
+      do iz = 0, IDIMZ
+        T2PlasmaElecZ3(iz,ir) =   (T2PlasmaPot3(iz+1,ir) - T2PlasmaPot3(iz,ir)) / DZ
+      enddo
+    enddo
+! Ez is symetric in R
+    T2PlasmaElecZ3(:,-1) = T2PlasmaElecZ3(:,0)
+! radial field is on the axial grid and halfway of the radial one
+    do ir = 0 , IDIMR
+      do iz = 0, IDIMZ
+        T2PlasmaElecRad3(iz,ir) = -(T2PlasmaPot3(iz,ir+1) - T2PlasmaPot3(iz,ir)) / DR
+      enddo
+    enddo
+! Er is anti-symetric in R 
+    T2PlasmaElecRad3(:,-1) = -T2PlasmaElecRad3(:,0)
+  endif
+! for iTimeStep+1 > MaxNumTimestepWakeAC, we use the interpolation made in Copy3to1 subroutine 
+! 
+end subroutine   FieldFromWakeAC
+
+  
+  
+! file WakeTrajFinalAnalysis.f90
 ! performed eventual post-processing analysis at the end of 
 ! called by WakeTrajMain  
 ! see documentaion in WakeTrajDoc
@@ -1130,7 +1184,6 @@ subroutine InitOutput()
     write(10,'(''    LaserAmax             '',e12.4)') LaserAmax
     write(10,'('' CriticalDensity_cm3 '',e12.4)') CriticalDensity_cm3
     write(10,'('' EpsLaserDiffrac    '',e12.4)') EpsLaserDiffrac
-    write(10,'('' EpsRayleigh        '',e12.4)') EpsRayleigh
     write(10,'('' LaserDuration      '',e12.4)') LaserDuration
     write(10,'('' LaserDUration_fs   '',e12.4)') LaserDuration_fs
     write(10,'('' LaserEnergy_J      '',e12.4)') LaserEnergy_J
@@ -1199,7 +1252,8 @@ end subroutine InitOutput
 ! see documentaion in WakeTrajDoc
 ! description of main variables is given in WakeTrajModule.90
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 16/03/2017
+! version 13/04/2017
+!** 13/04/2017  : case TypeOfCalculation = 2 is added
 !> subroutine that determine the initial step of the calculation
 subroutine InitialStep()
   use MdConstant
@@ -1232,8 +1286,12 @@ subroutine InitialStep()
       AmpLaser = LaserAmax * LaserWaist0 / LaserWaist
       Call LinearGaussianField()  !<determination of the field at the given time
       if(withBeamParticle) call BeamInjection !< injection of the beam particles
-! determination of DeltaT;  here only from the Rayleigh length
-      DeltaT = EpsRayleigh * Rayleigh_cm * PlasmaWNum_cm1 
+    
+    case(2) !< field is calculated from WakeAC
+      iTimeStep = -1 !< initial time should be the same than in the WakeAC calculation
+      Call FieldFromWakeAC()  !< determination of the field at the given time
+      if(withBeamParticle) call BeamInjection !< injection of the beam particles
+      
     case default
       write(*,*) ' error, presently only TypeOfCalculation=1 is allowed '
       write(*,*) ' however, input value of TypeOfCalculation = ',TypeOfCalculation
@@ -1267,14 +1325,13 @@ subroutine InitLaser()
   use MdNumeric
   implicit none
 !  
-  namelist/ParLaser/ LaserAmax, EpsLaserDiffrac, EpsRayleigh, LaserEnergy_J, LaserMaxIntensity_Wcm2,  LaserDuration, &
+  namelist/ParLaser/ LaserAmax, EpsLaserDiffrac, LaserEnergy_J, LaserMaxIntensity_Wcm2,  LaserDuration, &
                       & LaserDuration_fs, LaserGridPositionInit, LaserGridPosition_duration, TimeGaussianLaser, &
                       &  SpaceGaussianLaser, LaserWaist0, LaserWaist0_cm
 !
 ! default values
   LaserAmax = 0.d0
   EpsLaserDiffrac = 0.5d0
-  EpsRayleigh = 1.d-2
   LaserDuration = 0.d0
   LaserDuration_fs = 0.d0
   LaserWLength_cm = 0.8d-4
@@ -1392,8 +1449,8 @@ subroutine InitMain()
     write(*,*) ' error in Trmax input values; one of the TimeEnd_Rayleigh, TimeEnd_cm values should be specified'
     stop
   endif
-  if (TypeOfCalculation /= 1) then
-    write(*,*) 'Presently only the value TypeCalculation = 1 is allowed '
+  if ((TypeOfCalculation > 2).or.(TypeOfCalculation < 1)) then
+    write(*,*) 'Presently only the values TypeCalculation = 1,2 are allowed '
     stop
   endif
   if (RadiusGridCoef < 1.d-10) then
@@ -1484,7 +1541,7 @@ subroutine InitMain()
   else
     LaserWaist0_cm = LaserWaist0 / PlasmaWNum_cm1
   endif
-  if(TypeOfCalculation == 1) then !< determination of LaserAmax  
+  if(TypeOfCalculation <= 3) then !< determination of LaserAmax  
     if((LaserAmax < 1.d-10).and.(LaserMaxIntensity_Wcm2 < 1.d-10)) then !< LaserAmax and Int Max are determined by the energy
       LaserMaxIntensity_Wcm2 = 1.d15 * LaserEnergy_J / ((0.5*Pi)**1.5 * LaserWaist0_cm**2 * LaserDuration_fs)
       LaserAmax = 0.855d-5 * LaserWLength_cm * sqrt(LaserMaxIntensity_Wcm2)
@@ -1580,7 +1637,7 @@ end subroutine InitMain
 ! see documentaion in WakeTrajDoc
 ! description of main variables is given in WakeTrajModule.90
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 14/03/2017
+! version 13/04/2017
 
 !> subroutine of initialization of the main parameters
 subroutine InitPlasma()
@@ -1589,21 +1646,30 @@ subroutine InitPlasma()
   use MdPlasma
   implicit none
 ! 
-  namelist /ParPlasma/ Dens0Plasma_cm3
+  namelist /ParPlasma/ Dens0Plasma_cm3, MaxNumTimestepWakeAC
 ! default values
-  Dens0Plasma_cm3 = 0.d0  
+  Dens0Plasma_cm3 = 0.d0
+  MaxNumTimestepWakeAC = 0
 !* reading the namelist, the default value is used when the variable name is not include in the input data
   read(10,ParPlasma)
 ! check some plasma values  
-      if(withPlasma .and. (Dens0Plasma_cm3 < 1.d-10)) then
-      write(*,*) ' withplasma = true, then Dens0Plasma should be > 0 '
-      stop
-    endif
+  if(Dens0Plasma_cm3 < 1.d-10) then
+    write(*,*) ' withplasma = true, then Dens0Plasma should be > 0 '
+    stop
+  endif
+  if((TypeOfCalculation == 2).and.(MaxNumTimestepWakeAC == 0)) then
+    write(*,*) ' Error, TypeOfCalculation = 2 and MaxNumTimestepWakeAC = 0 '
+    stop
+  endif
 ! allocate the tables
-    allocate(T2PlasmaElecRad1(-1:IZMX,-1:IRMX)); T2PlasmaElecRad1 = 0.d0
-    allocate(T2PlasmaElecRad3(-1:IZMX,-1:IRMX)); T2PlasmaElecRad3 = 0.d0
-    allocate(T2PlasmaElecZ1(-1:IZMX,-1:IRMX)); T2PlasmaElecZ1 = 0.d0
-    allocate(T2PlasmaElecZ3(-1:IZMX,-1:IRMX)); T2PlasmaElecZ3 = 0.d0
+  allocate(T2PlasmaElecRad1(-1:IZMX,-1:IRMX)); T2PlasmaElecRad1 = 0.d0
+  allocate(T2PlasmaElecRad3(-1:IZMX,-1:IRMX)); T2PlasmaElecRad3 = 0.d0
+  allocate(T2PlasmaElecZ1(-1:IZMX,-1:IRMX)); T2PlasmaElecZ1 = 0.d0
+  allocate(T2PlasmaElecZ3(-1:IZMX,-1:IRMX)); T2PlasmaElecZ3 = 0.d0
+  if (TypeOfCalculation == 2) then 
+    allocate(T2PsiAC(-1:idimR+7, -2:idimZ+5)); T2PsiAC = 0.d0
+    allocate(T2PlasmaPot3(-1:IZMX,-1:IRMX)); T2PlasmaPot3 = 0.d0
+  endif
 
 end subroutine InitPlasma 
 ! file WakeTrajInitTestPart.f90
@@ -1783,7 +1849,8 @@ end subroutine RungeKutta
 ! see documentaion in WakeTrajDoc
 ! description of main variables is given in WakeTrajModule.90
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 20/03/2017
+! version 13/04/2017
+!* 13/04/2017 : implementation of typeofcalculation=2  
 !> subroutine calculating the evolution of fields and particles during the propagation
 subroutine TimeEvolution()
   use MdConstant
@@ -1815,8 +1882,12 @@ subroutine TimeEvolution()
       LaserWaist = LaserWaist0 * sqrt(1.d0 + (time_cm/Rayleigh_cm)**2)
       AmpLaser = LaserAmax * LaserWaist0 / LaserWaist
       Call LinearGaussianField()  !<determination of the field at the given time
+
+    case (2)  !< electric field calculated from WakeAC values of Psi potential
+      Call FieldFromWakeAC()
+      
     case default
-      write(*,*) ' error, presently only TypeOfCalculation=1 is allowed '
+      write(*,*) ' error, presently only TypeOfCalculation=1, 2 are allowed '
       stop
   end select
 
@@ -1889,6 +1960,16 @@ subroutine  PrintPlasmaField()
     write(111,'(5000e16.8)') (T2PlasmaElecRad3(iz,ir),iz=0,IDIMZ)
   enddo
   close (111)
+!* if TypeOfCalculation = 2, print of the potential
+  if(TypeOfCalculation == 2) then
+    write(LocNameFich,'(''PlPoten'',I4.4,''.out'')') NumPrint
+    open(111,file=LocNameFich)
+    do ir = 0,IDIMR
+      write(111,'(5000e16.8)') (T2PlasmaPot3(iz,ir),iz=0,IDIMZ)
+    enddo
+    close (111)
+  endif
+  
 !
 end subroutine PrintPlasmaField
 !

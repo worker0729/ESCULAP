@@ -4,7 +4,8 @@
 ! description of main variables is given in WakeTrajModule.90
 ! note that time is often written as a length in cm, the related time is in fact the one needed to travel one cm with the speed of light, which is the speed of the moving window  
 ! author Gilles Maynard CNRS/LPGP/ITFIP
-! version 08/03/2017
+! version 13/04/2017
+! ** 13/04/2017: implementation of TypeOfCalculation=2 for which the field is calculated from T2Psi values of a WakeAC calculation
 !> main program
 program WakeTrajMain
   use MdNumeric

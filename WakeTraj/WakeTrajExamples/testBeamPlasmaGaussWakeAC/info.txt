@@ -1,0 +1,1 @@
+Same calculation as in testBeamLinearGauss/testBeamAstra, but using WakeAC potential instead of linear theory. This calculation needs the Astra output file (same as in testBeamLinearGauss/testBeamAstra) and also the WakeAC results.

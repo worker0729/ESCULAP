@@ -48,7 +48,7 @@ subroutine Analyze()
 
 ! 2 Look whether we have to do some output
   if(TimeSort < 0.5*DeltaT) then
-    TimeSort = DeltaTSort + 0.5*deltaT
+    TimeSort = DeltaTSort + 0.499d0*deltaT
     NumPrint = NumPrint+1
     write(*,*) ' Time_cm',time_cm, ' NumPrint ',Numprint
     if(withBeamParticle) write(*,*) ' Number of beam particles ',locNBeamPart
